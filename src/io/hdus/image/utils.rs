@@ -76,14 +76,6 @@ pub fn pre_bytes_to_u8_vec(bytes: &Vec<u8>, output: &mut Vec<u8>) {
     });
 }
 
-pub fn pre_bytes_to_u16_vec(bytes: &Vec<u8>, output: &mut Vec<u16>) {
-    assert!(output.len() * 2 <= bytes.len());
-    output.par_iter_mut().enumerate().for_each(|(i, item)| {
-        let chunk = &bytes[i * 2..(i + 1) * 2];
-        *item = u16::from_be_bytes([chunk[0], chunk[1]]);
-    });
-}
-
 pub fn pre_bytes_to_i16_vec(bytes: &Vec<u8>, output: &mut Vec<i16>) {
     assert!(output.len() * 2 <= bytes.len());
     output.par_iter_mut().enumerate().for_each(|(i, item)| {
