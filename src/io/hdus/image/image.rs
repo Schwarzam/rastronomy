@@ -9,7 +9,7 @@ use std::io::{BufWriter, Write};
 
 use crate::io::hdus::image::utils::{
     get_shape, nbytes_from_bitpix, pre_bytes_to_f32_vec, pre_bytes_to_f64_vec,
-    pre_bytes_to_i16_vec, pre_bytes_to_i32_vec, pre_bytes_to_u8_vec, vec_to_ndarray,
+    pre_bytes_to_i32_vec, pre_bytes_to_u16_vec, pre_bytes_to_u8_vec, vec_to_ndarray,
 };
 use ndarray::ArrayD;
 use rayon::prelude::*;
@@ -17,6 +17,7 @@ use rayon::prelude::*;
 pub enum ImageData {
     U8(ArrayD<u8>),
     I16(ArrayD<i16>),
+    U16(ArrayD<u16>),
     I32(ArrayD<i32>),
     F32(ArrayD<f32>),
     F64(ArrayD<f64>),
@@ -31,6 +32,7 @@ impl ImageData {
     pub fn get_bitpix(&self) -> i32 {
         match self {
             ImageData::U8(_) => 8,
+            ImageData::U16(_) => 16,
             ImageData::I16(_) => 16,
             ImageData::I32(_) => 32,
             ImageData::F32(_) => -32,
@@ -42,6 +44,7 @@ impl ImageData {
     pub fn get_dtype(&self) -> String {
         match self {
             ImageData::U8(_) => String::from("uint8"),
+            ImageData::U16(_) => String::from("uint16"),
             ImageData::I16(_) => String::from("int16"),
             ImageData::I32(_) => String::from("int32"),
             ImageData::F32(_) => String::from("float32"),
@@ -53,6 +56,7 @@ impl ImageData {
     pub fn get_shape(&self) -> Vec<usize> {
         match self {
             ImageData::U8(array) => array.shape().to_vec(),
+            ImageData::U16(array) => array.shape().to_vec(),
             ImageData::I16(array) => array.shape().to_vec(),
             ImageData::I32(array) => array.shape().to_vec(),
             ImageData::F32(array) => array.shape().to_vec(),
@@ -73,6 +77,9 @@ impl fmt::Debug for ImageData {
         match self {
             ImageData::U8(array) => {
                 write!(f, "FitsData::U8({:?})", array)
+            }
+            ImageData::U16(array) => {
+                write!(f, "FitsData::U16({:?})", array)
             }
             ImageData::I16(array) => {
                 write!(f, "FitsData::I16({:?})", array)
@@ -143,10 +150,10 @@ impl ImageParser {
                 Ok(data)
             }
             16 => {
-                let mut vect: Vec<i16> = vec![0; databuf.len() / 2];
-                pre_bytes_to_i16_vec(&databuf, &mut vect);
+                let mut vect: Vec<u16> = vec![0; databuf.len() / 2];
+                pre_bytes_to_u16_vec(&databuf, &mut vect);
                 let ndarray = vec_to_ndarray(vect, shape);
-                let data = ImageData::I16(ndarray);
+                let data = ImageData::U16(ndarray);
                 Ok(data)
             }
             32 => {
@@ -181,6 +188,12 @@ impl ImageParser {
     pub fn ndarray_to_buffer_parallel(data: &ImageData) -> Vec<u8> {
         match data {
             ImageData::U8(array) => {
+                let vect = array.clone().into_raw_vec();
+                vect.par_iter()
+                    .flat_map(|&item| item.to_be_bytes().to_vec())
+                    .collect::<Vec<u8>>()
+            }
+            ImageData::U16(array) => {
                 let vect = array.clone().into_raw_vec();
                 vect.par_iter()
                     .flat_map(|&item| item.to_be_bytes().to_vec())
