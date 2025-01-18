@@ -161,20 +161,18 @@ pub fn read_table_bytes_to_df(
                     });
                 });
 
-                let df_cols: Vec<Series> = columns
-                    .iter()
-                    .enumerate()
-                    .map(|(i, column)| {
-                        let buf_col = &local_buf_cols[i];
-                        let series = buf_col.to_series(&column.ttype);
-                        local_buf_cols[i].clear();
-                        series
-                    })
-                    .collect();
-
-                let local_df = unsafe { DataFrame::new_no_checks(df_cols) };
-
-                Ok(local_df)
+                let local_df = DataFrame::new(
+                    columns
+                        .iter()
+                        .map(|column| {
+                            polars::prelude::Column::new(
+                                column.ttype.clone().into(),
+                                column.tform.clone(),
+                            )
+                        })
+                        .collect(),
+                );
+                Ok(local_df.unwrap())
             })
             .collect()
     });

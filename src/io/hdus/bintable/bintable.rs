@@ -123,7 +123,7 @@ pub fn read_table_bytes_to_df(
         .num_threads(n_threads as usize)
         .build()
         .unwrap();
-    let results: Vec<Result<DataFrame, std::io::Error>> = pool.install(|| {
+    let results: Vec<Result<DataFrame, PolarsError>> = pool.install(|| {
         limits
             .into_par_iter()
             .map(|(start, end)| {
@@ -146,25 +146,18 @@ pub fn read_table_bytes_to_df(
                     });
                 });
 
-                let df_cols = columns
-                    .iter()
-                    .enumerate()
-                    .map(|(i, column)| {
-                        if (get_first_letter(&column.tform) == "P")
-                            | (get_first_letter(&column.tform) == "Q")
-                        {
-                            local_buf_cols[i].read_var_len_cols();
-                        }
-
-                        let buf_col = &local_buf_cols[i];
-                        let series = buf_col.to_series(&column.ttype);
-                        local_buf_cols[i].clear();
-                        series
-                    })
-                    .collect();
-
-                let local_df = unsafe { DataFrame::new_no_checks(df_cols) };
-                Ok(local_df)
+                let local_df = DataFrame::new(
+                    columns
+                        .iter()
+                        .map(|column| {
+                            polars::prelude::Column::new(
+                                column.ttype.clone().into(),
+                                column.tform.clone(),
+                            )
+                        })
+                        .collect(),
+                );
+                Ok(local_df.unwrap())
             })
             .collect()
     });

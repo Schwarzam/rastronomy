@@ -1,4 +1,7 @@
-use polars::{prelude::NamedFrom, series::Series};
+use polars::{
+    prelude::{NamedFrom, PlSmallStr},
+    series::Series,
+};
 use rayon::prelude::*;
 
 #[derive(Debug, PartialEq)]
@@ -72,7 +75,7 @@ impl ColumnDataBuffer {
     }
 
     pub fn to_series(&self, col_name: &str) -> Series {
-        let col_name = col_name;
+        let col_name: PlSmallStr = col_name.into();
         let series = match self {
             ColumnDataBuffer::I(data) => Series::new(col_name, data),
             ColumnDataBuffer::E(data) => Series::new(col_name, data),
