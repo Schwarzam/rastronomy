@@ -17,7 +17,7 @@ pub fn format_scientific<T>(num: T, max_len: usize) -> String
 where
     T: std::fmt::LowerExp + PartialEq + Into<f64>,
 {
-    let mut formatted = format!("{:.e}", num);
+    let mut formatted = format!("{:e}", num);
     
     // Replace "0e0" with "0.0" for zero representation.
     if formatted.contains("0e0") {
